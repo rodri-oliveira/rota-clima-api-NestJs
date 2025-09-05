@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ModoTransporte {
+  DRIVING
+  WALKING
+  BICYCLING
+  TRANSIT
+}
+
+model Usuario {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  senhaHash     String
+  nome          String
+  criadoEm      DateTime       @default(now())
+  atualizadoEm  DateTime       @updatedAt
+  historico     ConsultaRota[]
+  favoritos     Favorito[]
+}
+
+model ConsultaRota {
+  id               String         @id @default(uuid())
+  origem           String
+  destino          String
+  modo             ModoTransporte
+  distanciaMetros  Int
+  duracaoSegundos  Int
+  temperaturaC     Float?
+  climaResumo      String?
+  criadoEm         DateTime       @default(now())
+
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+
+  @@index([usuarioId, criadoEm])
+}
+
+model Favorito {
+  id          String         @id @default(uuid())
+  origem      String
+  destino     String
+  modo        ModoTransporte
+  apelido     String?
+  criadoEm    DateTime       @default(now())
+
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+
+  @@unique([usuarioId, origem, destino, modo])
+}
