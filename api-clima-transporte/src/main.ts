@@ -31,6 +31,7 @@ async function bootstrap() {
       'API que consolida rotas de transporte e previsão do clima, com histórico e favoritos.',
     )
     .setVersion('1.0.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
