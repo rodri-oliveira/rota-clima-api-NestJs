@@ -7,6 +7,7 @@ import { PrismaModule } from './infra/database/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { FavoritosModule } from './favoritos/favoritos.module';
 import { HistoricoModule } from './historico/historico.module';
+import { RotaModule } from './rota/rota.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { HistoricoModule } from './historico/historico.module';
     AuthModule,
     FavoritosModule,
     HistoricoModule,
+    RotaModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
