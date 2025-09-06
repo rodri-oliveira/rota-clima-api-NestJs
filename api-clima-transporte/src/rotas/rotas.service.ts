@@ -55,7 +55,7 @@ export class RotasService {
     return 'driving-car';
   }
 
-  async obter(origem: string, destino: string, modo: string): Promise<RotaInfo> {
+  async getRouteInfo(origem: string, destino: string, modo: string): Promise<RotaInfo> {
     const key = `${origem}|${destino}|${modo}`.toLowerCase();
     const cached = this.cache.get(key);
     if (cached) return cached;
@@ -70,8 +70,8 @@ export class RotasService {
     try {
       // Geocodificar origem e destino
       const [coordsOrigem, coordsDestino] = await Promise.all([
-        this.geocoding.geocodificarLocal(origem),
-        this.geocoding.geocodificarLocal(destino),
+        this.geocoding.geocodePlace(origem),
+        this.geocoding.geocodePlace(destino),
       ]);
 
       if (!coordsOrigem || !coordsDestino) {
