@@ -1,0 +1,34 @@
+# Exclude dependencies and build artifacts
+node_modules
+coverage
+dist
+
+# VCS and editor configs
+.git
+.gitignore
+.vscode
+.idea
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files (use env_file or environment in compose instead)
+.env
+.env.*
+
+# Tests and local tooling
+coverage/
+.test
+__tests__/
+test/
+*.spec.ts
+*.e2e-spec.ts
+jest.config.*
+
+# OS files
+.DS_Store
+Thumbs.db
