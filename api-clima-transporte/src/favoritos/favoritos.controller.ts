@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsuarioAtual } from '../common/decorators/usuario.decorator';
 import type { UsuarioJwtPayload } from '../common/decorators/usuario.decorator';
-import type { CriarFavoritoDto } from './dto/criar-favorito.dto';
+import { CriarFavoritoDto } from './dto/criar-favorito.dto';
 import { FavoritosService } from './favoritos.service';
 
 @ApiTags('Favoritos')

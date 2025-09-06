@@ -20,6 +20,12 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true
-  }
+    "noFallthroughCasesInSwitch": true,
+    // Garante que os tipos de Node sejam resolvidos corretamente pelo IDE
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
+  },
+  // Ajuda o Language Service a indexar apenas o que importa
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
