@@ -45,6 +45,6 @@ export class RotaController {
     query: RotaQueryDto,
     @UsuarioAtual() usuario?: UsuarioJwtPayload,
   ) {
-    return this.rotaService.obterRota(query, usuario?.userId);
+    return this.rotaService.getRoute(query, usuario?.userId);
   }
 }

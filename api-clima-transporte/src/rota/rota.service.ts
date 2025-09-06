@@ -13,12 +13,12 @@ export class RotaService {
     private readonly rotas: RotasService,
   ) {}
 
-  private mapModo(modo: string): ModoTransporte {
-    return ModoTransporte[modo as keyof typeof ModoTransporte];
+  private mapTransportMode(mode: string): ModoTransporte {
+    return ModoTransporte[mode as keyof typeof ModoTransporte];
   }
 
-  async obterRota(dto: RotaQueryDto, usuarioId?: string) {
-    const { distanciaMetros, duracaoSegundos } = await this.rotas.obter(
+  async getRoute(dto: RotaQueryDto, usuarioId?: string) {
+    const { distanciaMetros, duracaoSegundos } = await this.rotas.getRouteInfo(
       dto.origem,
       dto.destino,
       dto.modo,
@@ -32,7 +32,7 @@ export class RotaService {
         data: {
           origem: dto.origem,
           destino: dto.destino,
-          modo: this.mapModo(dto.modo),
+          modo: this.mapTransportMode(dto.modo),
           distanciaMetros,
           duracaoSegundos,
           temperaturaC,
