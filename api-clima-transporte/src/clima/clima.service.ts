@@ -41,13 +41,13 @@ export class ClimaService {
     return { temperaturaC, climaResumo: 'Céu limpo (mock)' };
   }
 
-  async obterPorCidade(cidade: string): Promise<ClimaInfo> {
-    const cacheKey = `cidade:${cidade.toLowerCase()}`;
+  async getByCity(city: string): Promise<ClimaInfo> {
+    const cacheKey = `cidade:${city.toLowerCase()}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;
 
     if (!this.apiKey) {
-      const data = this.mock(cidade);
+      const data = this.mock(city);
       this.cache.set(cacheKey, data);
       return data;
     }
@@ -55,7 +55,7 @@ export class ClimaService {
     try {
       // OpenWeather Current Weather Data (by city name)
       const url = new URL('https://api.openweathermap.org/data/2.5/weather');
-      url.searchParams.set('q', cidade);
+      url.searchParams.set('q', city);
       url.searchParams.set('appid', this.apiKey);
       url.searchParams.set('units', 'metric');
       url.searchParams.set('lang', 'pt_br');
@@ -64,20 +64,20 @@ export class ClimaService {
       // eslint-disable-next-line no-undef
       const res = await fetch(url);
       if (!res.ok) {
-        this.logger.warn(`OpenWeather respondeu ${res.status} para cidade=${cidade}`);
-        const data = this.mock(cidade);
+        this.logger.warn(`OpenWeather respondeu ${res.status} para cidade=${city}`);
+        const data = this.mock(city);
         this.cache.set(cacheKey, data);
         return data;
       }
       const json: any = await res.json();
-      const temperaturaC: number = json?.main?.temp ?? this.mock(cidade).temperaturaC;
+      const temperaturaC: number = json?.main?.temp ?? this.mock(city).temperaturaC;
       const climaResumo: string = json?.weather?.[0]?.description ?? 'Sem dados';
       const data = { temperaturaC, climaResumo };
       this.cache.set(cacheKey, data);
       return data;
     } catch (err) {
       this.logger.error(`Falha ao consultar OpenWeather: ${String(err)}`);
-      const data = this.mock(cidade);
+      const data = this.mock(city);
       this.cache.set(cacheKey, data);
       return data;
     }

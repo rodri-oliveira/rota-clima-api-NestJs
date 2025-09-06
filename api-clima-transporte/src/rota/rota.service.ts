@@ -23,7 +23,7 @@ export class RotaService {
       dto.destino,
       dto.modo,
     );
-    const { temperaturaC, climaResumo } = await this.clima.obterPorCidade(
+    const { temperaturaC, climaResumo } = await this.clima.getByCity(
       dto.destino,
     );
 
