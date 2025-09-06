@@ -30,8 +30,8 @@ export class GeocodingService {
   private readonly logger = new Logger(GeocodingService.name);
   private readonly cache = new MemoryCache<Coordenadas | null>(24 * 60 * 60 * 1000); // 24h
 
-  async geocodificarLocal(nome: string): Promise<Coordenadas | null> {
-    const key = nome.trim().toLowerCase();
+  async geocodePlace(name: string): Promise<Coordenadas | null> {
+    const key = name.trim().toLowerCase();
     const cached = this.cache.get(key);
     if (cached !== undefined) {
       // cache pode ter null para "não encontrado"
@@ -41,7 +41,7 @@ export class GeocodingService {
     try {
       const url = new URL('https://nominatim.openstreetmap.org/search');
       url.searchParams.set('format', 'json');
-      url.searchParams.set('q', nome);
+      url.searchParams.set('q', name);
       url.searchParams.set('limit', '1');
 
       // eslint-disable-next-line no-undef
@@ -51,7 +51,7 @@ export class GeocodingService {
         },
       });
       if (!res.ok) {
-        this.logger.warn(`Nominatim respondeu ${res.status} para q='${nome}'`);
+        this.logger.warn(`Nominatim respondeu ${res.status} para q='${name}'`);
         this.cache.set(key, null);
         return null;
       }
@@ -65,7 +65,7 @@ export class GeocodingService {
       this.cache.set(key, coords);
       return coords;
     } catch (err) {
-      this.logger.error(`Falha ao geocodificar '${nome}': ${String(err)}`);
+      this.logger.error(`Falha ao geocodificar '${name}': ${String(err)}`);
       this.cache.set(key, null);
       return null;
     }
