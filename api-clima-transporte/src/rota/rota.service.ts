@@ -48,7 +48,12 @@ export class RotaService {
       modo: dto.modo,
       distanciaMetros,
       duracaoSegundos,
-      clima: { temperaturaC, resumo: climaResumo },
+      clima: {
+        cidade: dto.destino,
+        temperaturaC,
+        resumo: climaResumo,
+        obtidoEm: new Date().toISOString(),
+      },
     };
   }
 }
