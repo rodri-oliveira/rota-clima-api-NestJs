@@ -8,12 +8,14 @@ import { AuthModule } from './auth/auth.module';
 import { FavoritosModule } from './favoritos/favoritos.module';
 import { HistoricoModule } from './historico/historico.module';
 import { RotaModule } from './rota/rota.module';
+import { ClimaModule } from './clima/clima.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    ClimaModule,
     FavoritosModule,
     HistoricoModule,
     RotaModule,

@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../infra/database/prisma.service';
 import { RotaQueryDto } from './dto/rota-query.dto';
 import { ModoTransporte } from '@prisma/client';
+import { ClimaService } from '../clima/clima.service';
 
 @Injectable()
 export class RotaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly clima: ClimaService,
+  ) {}
 
   private mapModo(modo: string): ModoTransporte {
     return ModoTransporte[modo as keyof typeof ModoTransporte];
@@ -19,19 +23,14 @@ export class RotaService {
     return { distanciaMetros, duracaoSegundos };
   }
 
-  private climaMock(destino: string) {
-    // Mock simples: temperatura baseada no comprimento do destino
-    const temperaturaC = 15 + (destino.length % 15); // 15 a 29
-    const climaResumo = 'Céu limpo';
-    return { temperaturaC, climaResumo };
-  }
-
   async obterRota(dto: RotaQueryDto, usuarioId?: string) {
     const { distanciaMetros, duracaoSegundos } = this.calcularMock(
       dto.origem,
       dto.destino,
     );
-    const { temperaturaC, climaResumo } = this.climaMock(dto.destino);
+    const { temperaturaC, climaResumo } = await this.clima.obterPorCidade(
+      dto.destino,
+    );
 
     if (usuarioId) {
       await this.prisma.consultaRota.create({
