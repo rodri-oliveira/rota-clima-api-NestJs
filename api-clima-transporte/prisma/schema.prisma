@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // Include binaries for local dev (native) and Debian engines (OpenSSL 1.1 and 3.0)
+  // Prod image (bookworm) usa OpenSSL 3; Dev (bullseye) usa OpenSSL 1.1
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {

@@ -1,4 +1,59 @@
 services:
+  api:
+    build:
+      context: ./api-clima-transporte
+      dockerfile: Dockerfile
+    container_name: rota_clima_api
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    env_file:
+      - ./api-clima-transporte/.env
+    environment:
+      # Quando a API roda em container, ela deve falar com 'postgres' (nome do serviço) na porta 5432
+      DATABASE_URL: postgresql://app:app@postgres:5432/rota_clima?schema=public
+      # Mantém a porta configurada
+      PORT: 3000
+      # Exemplo: se usar chaves locais, estarão no env_file; se quiser sobrescrever, defina aqui
+      # OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+      # ORS_API_KEY: ${ORS_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api-dev:
+    image: node:20-bullseye-slim
+    container_name: rota_clima_api_dev
+    profiles: ["dev"]
+    working_dir: /app
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./api-clima-transporte:/app
+      # Importante: NÃO monte node_modules do host. Deixe o container gerenciar deps Linux
+      - /app/node_modules
+    env_file:
+      - ./api-clima-transporte/.env
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/rota_clima?schema=public
+      PORT: 3000
+      # Melhora o file-watching em bind mounts no Windows
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: sh -c "npm ci && npx prisma generate && npm run start:dev"
+
   postgres:
     image: postgres:16-alpine
     container_name: rota_clima_postgres
