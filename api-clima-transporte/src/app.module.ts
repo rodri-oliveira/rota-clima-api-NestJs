@@ -9,6 +9,7 @@ import { FavoritosModule } from './favoritos/favoritos.module';
 import { HistoricoModule } from './historico/historico.module';
 import { RotaModule } from './rota/rota.module';
 import { ClimaModule } from './clima/clima.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ClimaModule } from './clima/clima.module';
     FavoritosModule,
     HistoricoModule,
     RotaModule,
+    MetricsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
