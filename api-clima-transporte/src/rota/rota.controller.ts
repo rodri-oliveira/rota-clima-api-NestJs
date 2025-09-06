@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UseGuards, ValidationPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RotaService } from './rota.service';
 import { RotaQueryDto } from './dto/rota-query.dto';
 import { UsuarioAtual } from '../common/decorators/usuario.decorator';
@@ -15,6 +15,26 @@ export class RotaController {
   @ApiOperation({ summary: 'Obter rota e clima (mock) e registrar histórico se autenticado' })
   @ApiBearerAuth()
   @UseGuards(OptionalJwtAuthGuard)
+  @ApiOkResponse({
+    description: 'Dados de rota e clima',
+    schema: {
+      type: 'object',
+      properties: {
+        origem: { type: 'string', example: 'São Paulo' },
+        destino: { type: 'string', example: 'Rio de Janeiro' },
+        modo: { type: 'string', example: 'DRIVING' },
+        distanciaMetros: { type: 'number', example: 431245 },
+        duracaoSegundos: { type: 'number', example: 18600 },
+        clima: {
+          type: 'object',
+          properties: {
+            temperaturaC: { type: 'number', example: 27.3 },
+            resumo: { type: 'string', example: 'céu limpo' },
+          },
+        },
+      },
+    },
+  })
   async obter(
     @Query(new ValidationPipe({
       transform: true,
