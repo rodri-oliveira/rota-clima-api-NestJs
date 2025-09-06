@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { GeocodingService } from '../geocoding/geocoding.service';
 
 export interface RotaInfo {
   distanciaMetros: number;
@@ -32,7 +33,10 @@ export class RotasService {
   private readonly cache = new MemoryCache<RotaInfo>(5 * 60 * 1000); // 5 minutos
   private readonly apiKey?: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly geocoding: GeocodingService,
+  ) {
     this.apiKey = this.config.get<string>('ORS_API_KEY');
   }
 
@@ -43,11 +47,20 @@ export class RotasService {
     return { distanciaMetros, duracaoSegundos };
   }
 
+  private mapProfile(modo: string): string {
+    const m = (modo || '').toUpperCase();
+    if (m === 'WALKING') return 'foot-walking';
+    if (m === 'BICYCLING') return 'cycling-regular';
+    // TRANSIT não é suportado diretamente pelo ORS; cair para driving
+    return 'driving-car';
+  }
+
   async obter(origem: string, destino: string, modo: string): Promise<RotaInfo> {
     const key = `${origem}|${destino}|${modo}`.toLowerCase();
     const cached = this.cache.get(key);
     if (cached) return cached;
 
+    // Se não houver API key, manter mock
     if (!this.apiKey) {
       const data = this.mock(origem, destino);
       this.cache.set(key, data);
@@ -55,18 +68,58 @@ export class RotasService {
     }
 
     try {
-      // OpenRouteService Directions API (simple example with "driving-car")
-      const profile = modo.toLowerCase() === 'walking' ? 'foot-walking' : 'driving-car';
+      // Geocodificar origem e destino
+      const [coordsOrigem, coordsDestino] = await Promise.all([
+        this.geocoding.geocodificarLocal(origem),
+        this.geocoding.geocodificarLocal(destino),
+      ]);
+
+      if (!coordsOrigem || !coordsDestino) {
+        this.logger.warn('Geocoding falhou ou não encontrou coordenadas — usando mock.');
+        const data = this.mock(origem, destino);
+        this.cache.set(key, data);
+        return data;
+      }
+
+      const profile = this.mapProfile(modo);
       const url = new URL(`https://api.openrouteservice.org/v2/directions/${profile}`);
-      // For simplest path, we need coordinates; como mock inicial baseado em nomes, manteremos fallback
-      // Em um cenário real, geocodificamos origem/destino para lat/lng e montamos o body.
-      // Aqui, mantemos mock se não houver coordenadas resolvíveis.
-      this.logger.warn('ORS integrado, mas faltando geocodificação — usando mock para nomes de cidades.');
-      const data = this.mock(origem, destino);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      // eslint-disable-next-line no-undef
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.apiKey!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coordinates: [
+            [coordsOrigem.lon, coordsOrigem.lat],
+            [coordsDestino.lon, coordsDestino.lat],
+          ],
+        }),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
+
+      if (!res.ok) {
+        this.logger.warn(`ORS respondeu ${res.status} — fallback mock.`);
+        const data = this.mock(origem, destino);
+        this.cache.set(key, data);
+        return data;
+      }
+
+      const json: any = await res.json();
+      const feat = json?.features?.[0];
+      const summary = feat?.properties?.summary;
+      const distanciaMetros = Number(summary?.distance) || this.mock(origem, destino).distanciaMetros;
+      const duracaoSegundos = Number(summary?.duration) || this.mock(origem, destino).duracaoSegundos;
+      const data: RotaInfo = { distanciaMetros, duracaoSegundos };
       this.cache.set(key, data);
       return data;
     } catch (err) {
-      this.logger.error(`Falha ao consultar ORS: ${String(err)}`);
+      this.logger.error(`Falha ORS/geocoding: ${String(err)}`);
       const data = this.mock(origem, destino);
       this.cache.set(key, data);
       return data;

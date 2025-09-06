@@ -30,7 +30,7 @@ export class GeocodingService {
   private readonly logger = new Logger(GeocodingService.name);
   private readonly cache = new MemoryCache<Coordenadas | null>(24 * 60 * 60 * 1000); // 24h
 
-  async geocodeLocal(nome: string): Promise<Coordenadas | null> {
+  async geocodificarLocal(nome: string): Promise<Coordenadas | null> {
     const key = nome.trim().toLowerCase();
     const cached = this.cache.get(key);
     if (cached !== undefined) {
