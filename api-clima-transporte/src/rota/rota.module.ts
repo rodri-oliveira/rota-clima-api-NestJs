@@ -3,9 +3,10 @@ import { RotaController } from './rota.controller';
 import { RotaService } from './rota.service';
 import { PrismaModule } from '../infra/database/prisma.module';
 import { ClimaModule } from '../clima/clima.module';
+import { RotasModule } from '../rotas/rotas.module';
 
 @Module({
-  imports: [PrismaModule, ClimaModule],
+  imports: [PrismaModule, ClimaModule, RotasModule],
   controllers: [RotaController],
   providers: [RotaService],
 })
