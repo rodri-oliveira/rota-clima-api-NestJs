@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: rota_clima
+        options: >-
+          --health-cmd "pg_isready -U app -d rota_clima" \
+          --health-interval 10s \
+          --health-timeout 5s \
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping" \
+          --health-interval 10s \
+          --health-timeout 5s \
+          --health-retries 5
+
+    env:
+      # Substitua a URL abaixo se mudar user/password/db
+      DATABASE_URL: postgresql://app:app@localhost:5432/rota_clima?schema=public
+      REDIS_URL: redis://localhost:6379
+      PORT: 3000
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: api-clima-transporte/package-lock.json
+
+      - name: Install dependencies
+        working-directory: api-clima-transporte
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: api-clima-transporte
+        run: npx prisma generate
+
+      - name: Build
+        working-directory: api-clima-transporte
+        run: npm run build
+
+      - name: Run e2e tests
+        working-directory: api-clima-transporte
+        run: npm run test:e2e
