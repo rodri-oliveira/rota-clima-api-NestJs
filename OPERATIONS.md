@@ -83,3 +83,54 @@ docker exec -i rota_clima_postgres psql -U app -d rota_clima < backup_2025-01-01
 ## CI
 - Workflow GitHub Actions em `.github/workflows/ci.yml`
 - Executa: npm ci → prisma generate → build → e2e, com serviços Postgres e Redis provisionados.
+
+---
+
+## Dashboards Prometheus/Grafana
+
+Métricas expostas em `/metrics`:
+- `http_requests_total` (contador por rota/método/status)
+- `http_request_duration_seconds` (histograma por rota)
+- `cache_hits_total{cache="rota|clima"}`
+- `cache_misses_total{cache="rota|clima"}`
+
+### PromQL — Throughput HTTP por rota (5m)
+```
+sum by (route) (rate(http_requests_total[5m]))
+```
+
+### PromQL — Latência P95 por rota (5m)
+```
+histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))
+```
+
+### PromQL — Latência P99 por rota (5m)
+```
+histogram_quantile(0.99, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))
+```
+
+### PromQL — Erros HTTP (4xx/5xx) por rota (5m)
+```
+sum by (route, status_code) (rate(http_requests_total{status_code=~"4..|5.."}[5m]))
+```
+
+### PromQL — Cache hit ratio (clima) — taxa (5m)
+```
+sum(rate(cache_hits_total{cache="clima"}[5m]))
+/ clamp_min(sum(rate(cache_hits_total{cache="clima"}[5m])) + sum(rate(cache_misses_total{cache="clima"}[5m])), 1)
+```
+
+### PromQL — Cache hit ratio (rota) — taxa (5m)
+```
+sum(rate(cache_hits_total{cache="rota"}[5m]))
+/ clamp_min(sum(rate(cache_hits_total{cache="rota"}[5m])) + sum(rate(cache_misses_total{cache="rota"}[5m])), 1)
+```
+
+### PromQL — Misses de cache por tipo (5m)
+```
+sum by (cache) (rate(cache_misses_total[5m]))
+```
+
+### Dicas de dashboard
+- Cards: requisições/min, taxa de erros (%), P95/P99, hit ratio (rota/clima).
+- Gráficos: throughput por rota, latência por rota, hits e misses por tipo.
