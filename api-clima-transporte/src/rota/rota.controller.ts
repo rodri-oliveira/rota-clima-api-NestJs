@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UseGuards, ValidationPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { RotaService } from './rota.service';
 import { RotaQueryDto } from './dto/rota-query.dto';
 import { UsuarioAtual } from '../common/decorators/usuario.decorator';
@@ -12,7 +12,7 @@ export class RotaController {
   constructor(private readonly rotaService: RotaService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Obter rota e clima (mock) e registrar histórico se autenticado' })
+  @ApiOperation({ summary: 'Obter rota e clima (com cache) e registrar histórico se autenticado' })
   @ApiBearerAuth()
   @UseGuards(OptionalJwtAuthGuard)
   @ApiQuery({ name: 'origem', type: String, required: true, example: 'Sao Paulo', description: 'Cidade de origem' })
@@ -40,6 +40,8 @@ export class RotaController {
       },
     },
   })
+  @ApiBadRequestResponse({ description: 'Parâmetros inválidos (origem, destino, modo)' })
+  @ApiUnauthorizedResponse({ description: 'Token inválido/ausente (histórico não será gravado)' })
   async obter(
     @Query(new ValidationPipe({
       transform: true,
