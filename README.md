@@ -1,4 +1,5 @@
 # 🌍 API Clima + Transporte
+[![CI](https://github.com/rodri-oliveira/rota-clima-api-NestJs/actions/workflows/ci.yml/badge.svg)](https://github.com/rodri-oliveira/rota-clima-api-NestJs/actions/workflows/ci.yml)
 
 Backend em NestJS com PostgreSQL (Prisma) para consultar rotas e clima, com histórico e favoritos.
 
@@ -119,4 +120,26 @@ Lista as últimas consultas de rota do usuário (ordenadas por mais recentes).
 ## Observabilidade e deploy (próximos passos)
 - `/metrics` (Prometheus) e dashboards.
 - Dockerfile e ajustes no `docker-compose.yml` para API + Postgres (+ Redis).
+
+## Produção — Checklist rápido
+- __Variáveis obrigatórias__
+  - `DATABASE_URL` — conexão Postgres
+  - `REDIS_URL` — ex.: `redis://redis:6379`
+  - `JWT_SECRET` — segredo JWT
+  - `CORS_ORIGIN` — origens permitidas (ex.: `https://app.meudominio.com`)
+  - `RATE_LIMIT_MAX` — limite de req/15m por IP (ex.: `100`)
+  - `LOG_LEVEL` — `info`/`warn`/`error` (prod)
+  - `OPENWEATHER_API_KEY` (opcional) — se definido, usa OpenWeather; caso contrário, Open‑Meteo
+
+- __Build e migrações__
+  - `npm run build` (ou imagem Docker)
+  - `npx prisma migrate deploy` (em release)
+
+- __Observabilidade__
+  - `/metrics` expõe métricas de HTTP e de cache (`cache_hits_total`, `cache_misses_total`)
+  - Logs JSON (Pino) com `X-Request-Id` para correlação
+
+- __Validação (smoke)__
+  - Na raiz: `./smoke.ps1 -Port 3001` (ou porta configurada)
+
 
