@@ -187,6 +187,32 @@ docker compose up -d --build
 
 ---
 
+## Cache Redis (GET /rota)
+O endpoint `GET /rota` agora possui cache em Redis para reduzir latência e chamadas externas.
+
+Diretório do serviço: `api-clima-transporte/src/common/cache/redis-cache.service.ts`
+
+- __Como funciona__
+  - Chave do cache: `origem|destino|modo` com prefixo configurável (`ROUTE_CACHE_PREFIX`).
+  - TTL padrão: 600s (`ROUTE_CACHE_TTL_SECONDS`).
+  - O compose define automaticamente `REDIS_URL` para os containers (`redis://redis:6379`).
+
+- __Variáveis__ (arquivo `api-clima-transporte/.env` — opcionais quando fora do Docker):
+  - `REDIS_URL="redis://localhost:6379"`
+  - `ROUTE_CACHE_TTL_SECONDS=600`
+  - `ROUTE_CACHE_PREFIX=rota_cache:`
+
+- __Testar__
+  1. Suba a stack (prod-like): `docker compose up -d postgres redis api`
+  2. Faça duas requisições idênticas no Swagger a `GET /rota` (mesma origem/destino/modo)
+  3. A segunda deverá responder mais rápido (hit no cache)
+
+- __Observações__
+  - Em desenvolvimento (profile `dev`), o `api-dev` também usa `REDIS_URL=redis://redis:6379`.
+  - Para invalidar o cache manualmente, basta alterar `origem/destino/modo` ou mudar o `PREFIX`/`TTL`.
+
+---
+
 ## Microserviços: boas práticas (resumo)
 - 1 serviço (container) por microserviço.
 - Dependências (DB, cache, mensageria) em containers próprios.
@@ -230,3 +256,42 @@ docker compose down -v
 - Prisma schema: `api-clima-transporte/prisma/schema.prisma`
 
 Se quiser, posso adicionar um profile `dev` no Compose para hot‑reload (montando o código como volume e rodando `npm run start:dev` dentro do container).
+
+---
+
+## Passo a passo rápido (com diretórios)
+
+- __Produção local (porta 3001)__ — Diretório: raiz do repositório
+  1. Subir serviços:
+     ```powershell
+     docker compose up -d postgres redis api
+     ```
+  2. Testar:
+     - Swagger: http://localhost:3001/docs
+     - Health: http://localhost:3001/health
+     - Métricas: http://localhost:3001/metrics
+  3. Cache /rota: faça duas chamadas idênticas a `GET /rota` no Swagger; a segunda deve ser mais rápida (Redis).
+
+- __Desenvolvimento (porta 3002)__ — Diretório: raiz do repositório
+  1. Subir dev (hot‑reload):
+     ```powershell
+     docker compose --profile dev up -d api-dev
+     ```
+  2. Testar:
+     - Swagger: http://localhost:3002/docs
+     - Health: http://localhost:3002/health
+     - Métricas: http://localhost:3002/metrics
+
+- __API fora do Docker (porta 3000)__
+  1. Diretório: raiz
+     ```powershell
+     docker compose up -d postgres redis
+     ```
+  2. Diretório: `api-clima-transporte/`
+     ```powershell
+     npm run start:dev
+     ```
+  3. Testar:
+     - Swagger: http://localhost:3000/docs
+     - Health: http://localhost:3000/health
+     - Métricas: http://localhost:3000/metrics

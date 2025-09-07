@@ -21,8 +21,8 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
-    // Garante que os tipos de Node sejam resolvidos corretamente pelo IDE
-    "types": ["node"],
+    // Garante que os tipos de Node e Jest sejam resolvidos corretamente pelo IDE
+    "types": ["node", "jest"],
     "typeRoots": ["./node_modules/@types"]
   },
   // Ajuda o Language Service a indexar apenas o que importa
