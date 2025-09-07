@@ -4,6 +4,7 @@ import { RotaQueryDto } from './dto/rota-query.dto';
 import { ModoTransporte } from '@prisma/client';
 import { ClimaService } from '../clima/clima.service';
 import { RotasService } from '../rotas/rotas.service';
+import { RedisCacheService } from '../common/cache/redis-cache.service';
 
 @Injectable()
 export class RotaService {
@@ -11,6 +12,7 @@ export class RotaService {
     private readonly prisma: PrismaService,
     private readonly clima: ClimaService,
     private readonly rotas: RotasService,
+    private readonly cache: RedisCacheService,
   ) {}
 
   private mapTransportMode(mode: string): ModoTransporte {
@@ -18,6 +20,11 @@ export class RotaService {
   }
 
   async getRoute(dto: RotaQueryDto, usuarioId?: string) {
+    const cacheKey = `${dto.origem}|${dto.destino}|${dto.modo}`;
+    const cached = await this.cache.getJson<any>(cacheKey);
+    if (cached) {
+      return cached;
+    }
     const { distanciaMetros, duracaoSegundos } = await this.rotas.getRouteInfo(
       dto.origem,
       dto.destino,
@@ -42,7 +49,7 @@ export class RotaService {
       });
     }
 
-    return {
+    const response = {
       origem: dto.origem,
       destino: dto.destino,
       modo: dto.modo,
@@ -55,5 +62,7 @@ export class RotaService {
         obtidoEm: new Date().toISOString(),
       },
     };
+    await this.cache.setJson(cacheKey, response);
+    return response;
   }
 }
