@@ -1,11 +1,22 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
+import { Counter } from 'prom-client';
 
 @Injectable()
 export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
   private client!: Redis;
   private ttlSeconds: number;
   private prefix: string;
+  private static hitsCounter = new Counter({
+    name: 'cache_hits_total',
+    help: 'Total de acertos no cache',
+    labelNames: ['cache'],
+  });
+  private static missesCounter = new Counter({
+    name: 'cache_misses_total',
+    help: 'Total de perdas no cache',
+    labelNames: ['cache'],
+  });
 
   constructor() {
     const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -30,11 +41,19 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
     return `${this.prefix}${key}`;
   }
 
+  private cacheLabel(key: string): string {
+    if (key.startsWith('clima:')) return 'clima';
+    return 'rota';
+  }
+
   async getJson<T>(key: string): Promise<T | null> {
-    const value = await this.client.get(this.k(key));
+    const namespaced = this.k(key);
+    const value = await this.client.get(namespaced);
     if (!value) return null;
     try {
-      return JSON.parse(value) as T;
+      const parsed = JSON.parse(value) as T;
+      RedisCacheService.hitsCounter.inc({ cache: this.cacheLabel(key) });
+      return parsed;
     } catch {
       return null;
     }
@@ -42,6 +61,9 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
 
   async setJson<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
     const ttl = ttlSeconds ?? this.ttlSeconds;
-    await this.client.set(this.k(key), JSON.stringify(value), 'EX', ttl);
+    const namespaced = this.k(key);
+    await this.client.set(namespaced, JSON.stringify(value), 'EX', ttl);
+    // Registrar miss ao setar (indicativo de preenchimento de cache)
+    RedisCacheService.missesCounter.inc({ cache: this.cacheLabel(key) });
   }
 }

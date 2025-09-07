@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { RedisCacheService } from '../common/cache/redis-cache.service';
 
 export interface ClimaInfo {
   temperaturaC: number;
@@ -29,10 +30,13 @@ class MemoryCache<T> {
 @Injectable()
 export class ClimaService {
   private readonly logger = new Logger(ClimaService.name);
-  private readonly cache = new MemoryCache<ClimaInfo>(5 * 60 * 1000); // 5 minutos
+  private readonly memCache = new MemoryCache<ClimaInfo>(5 * 60 * 1000); // fallback em memória (se Redis indisponível)
   private readonly apiKey?: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly redis: RedisCacheService,
+  ) {
     this.apiKey = this.config.get<string>('OPENWEATHER_API_KEY');
   }
 
@@ -92,7 +96,11 @@ export class ClimaService {
 
   async getByCity(city: string): Promise<ClimaInfo> {
     const cacheKey = `cidade:${city.toLowerCase()}`;
-    const cached = this.cache.get(cacheKey);
+    // 1) Tenta Redis primeiro
+    const redisHit = await this.redis.getJson<ClimaInfo>(cacheKey);
+    if (redisHit) return redisHit;
+    // 2) Tenta fallback em memória
+    const cached = this.memCache.get(cacheKey);
     if (cached) return cached;
 
     // Sem API key: usa Open-Meteo (gratuita, sem chave) com geocoding
@@ -101,7 +109,8 @@ export class ClimaService {
         const coords = await this.geocodeCity(city);
         if (!coords) {
           const data = this.mock(city);
-          this.cache.set(cacheKey, data);
+          await this.redis.setJson(cacheKey, data, 300);
+          this.memCache.set(cacheKey, data);
           return data;
         }
         const url = new URL('https://api.open-meteo.com/v1/forecast');
@@ -114,7 +123,8 @@ export class ClimaService {
         if (!res.ok) {
           this.logger.warn(`Open-Meteo respondeu ${res.status} para cidade=${city}`);
           const data = this.mock(city);
-          this.cache.set(cacheKey, data);
+          await this.redis.setJson(cacheKey, data, 300);
+          this.memCache.set(cacheKey, data);
           return data;
         }
         const json: any = await res.json();
@@ -122,12 +132,13 @@ export class ClimaService {
         const weatherCode: number | undefined = json?.current_weather?.weathercode;
         const climaResumo = this.weatherCodeToPt(weatherCode);
         const data = { temperaturaC, climaResumo };
-        this.cache.set(cacheKey, data);
+        await this.redis.setJson(cacheKey, data, 300);
+        this.memCache.set(cacheKey, data);
         return data;
       } catch (err) {
         this.logger.error(`Falha ao consultar Open-Meteo: ${String(err)}`);
         const data = this.mock(city);
-        this.cache.set(cacheKey, data);
+        this.memCache.set(cacheKey, data);
         return data;
       }
     }
@@ -146,19 +157,21 @@ export class ClimaService {
       if (!res.ok) {
         this.logger.warn(`OpenWeather respondeu ${res.status} para cidade=${city}`);
         const data = this.mock(city);
-        this.cache.set(cacheKey, data);
+        await this.redis.setJson(cacheKey, data, 300);
+        this.memCache.set(cacheKey, data);
         return data;
       }
       const json: any = await res.json();
       const temperaturaC: number = json?.main?.temp ?? this.mock(city).temperaturaC;
       const climaResumo: string = json?.weather?.[0]?.description ?? 'Sem dados';
       const data = { temperaturaC, climaResumo };
-      this.cache.set(cacheKey, data);
+      await this.redis.setJson(cacheKey, data, 300);
+      this.memCache.set(cacheKey, data);
       return data;
     } catch (err) {
       this.logger.error(`Falha ao consultar OpenWeather: ${String(err)}`);
       const data = this.mock(city);
-      this.cache.set(cacheKey, data);
+      this.memCache.set(cacheKey, data);
       return data;
     }
   }
