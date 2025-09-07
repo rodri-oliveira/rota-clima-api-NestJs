@@ -5,6 +5,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +30,29 @@ async function bootstrap() {
 
   // Interceptor de logging (método, URL, status, duração)
   app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // Segurança básica (headers, CORS e rate limit)
+  app.use(helmet());
+  // CORS: whitelist por env; em dev liberamos tudo por simplicidade
+  const originEnv = process.env.CORS_ORIGIN;
+  app.use(
+    cors({
+      origin:
+        originEnv && originEnv !== '*'
+          ? originEnv.split(',').map((o) => o.trim())
+          : true,
+      credentials: true,
+    }),
+  );
+  // Rate limit (~100 req / 15 min por IP); liberar health/metrics
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => ['/health', '/metrics'].includes(req.path),
+  });
+  app.use(limiter);
 
   // Configuração Swagger (documentação da API)
   const config = new DocumentBuilder()

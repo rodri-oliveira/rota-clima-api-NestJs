@@ -23,6 +23,21 @@ export class RotaService {
     const cacheKey = `${dto.origem}|${dto.destino}|${dto.modo}`;
     const cached = await this.cache.getJson<any>(cacheKey);
     if (cached) {
+      // Mesmo em hit de cache, se autenticado devemos registrar no histórico
+      if (usuarioId) {
+        await this.prisma.consultaRota.create({
+          data: {
+            origem: cached.origem,
+            destino: cached.destino,
+            modo: this.mapTransportMode(cached.modo),
+            distanciaMetros: cached.distanciaMetros,
+            duracaoSegundos: cached.duracaoSegundos,
+            temperaturaC: cached.clima?.temperaturaC,
+            climaResumo: cached.clima?.resumo,
+            usuarioId,
+          },
+        });
+      }
       return cached;
     }
     const { distanciaMetros, duracaoSegundos } = await this.rotas.getRouteInfo(
