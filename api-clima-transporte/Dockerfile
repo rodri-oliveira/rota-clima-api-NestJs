@@ -16,11 +16,11 @@ RUN npm ci --omit=dev=false
 # Copy sources
 COPY . .
 
+# Generate Prisma Client BEFORE build (needed for TS types from @prisma/client)
+RUN npx prisma generate
+
 # Build
 RUN npm run build
-
-# Generate Prisma Client (ensure engines are baked into node_modules for runtime)
-RUN npx prisma generate
 
 # Prune dev deps for runtime
 RUN npm prune --omit=dev
