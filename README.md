@@ -7,15 +7,21 @@ Backend em NestJS com PostgreSQL (Prisma) para consultar rotas e clima, com hist
 Consolidar informações de transporte e clima em uma única API com boas práticas: testes, logs, observabilidade e deploy.
 
 ## Tecnologias
-- NestJS (Fastify)
-- PostgreSQL + Prisma
-- Redis (cache)
-- JWT (autenticação)
-- Swagger (documentação)
-- Jest + Supertest (testes)
+- Node 20 + TypeScript
+- NestJS
+- PostgreSQL + Prisma ORM
+- Redis (ioredis) — cache com TTL
+- JWT (Passport-JWT)
+- Swagger (OpenAPI)
+- Jest + Supertest (E2E) e `smoke.ps1`
+- Pino (logs estruturados) + `X-Request-Id`
+- prom-client (métricas Prometheus)
 - Docker + Docker Compose
-- Pino (logs)
-- Prometheus / OpenTelemetry (observabilidade)
+- GitHub Actions (CI)
+
+### Providers de clima
+- Padrão: Open‑Meteo (sem chave, já funciona out-of-the-box)
+- Opcional: OpenWeather (defina `OPENWEATHER_API_KEY` no `.env`)
 
 ## Roadmap
 Consulte o arquivo `base.md` para o escopo e o roadmap completo.
